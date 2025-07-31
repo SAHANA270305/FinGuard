@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Risk Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .chat-bubble-bot {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #1f2937; /* gray-800 */
+            border-radius: 1rem 1rem 1rem 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">Document Risk Analysis Dashboard</h1>
+            <p class="text-gray-600 mt-1">Upload a financial document to analyze for potential risks.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Left and Middle Column for Analysis -->
+            <div class="lg:col-span-2 space-y-8">
+
+                <!-- 1. Upload Document Section -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">1. Upload Document</h2>
+                    <div id="upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-gray-50 transition-colors">
+                        <input type="file" id="file-upload" class="hidden">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4V12a4 4 0 014-4h12l4 4h12a4 4 0 014 4v4m-8-8l-4-4m0 0L8 8m16 16v12a4 4 0 01-4 4H8a4 4 0 01-4-4V16a4 4 0 014-4h2.586a1 1 0 01.707.293l1.414 1.414a1 1 0 00.707.293H28a4 4 0 014 4v4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <p id="upload-text" class="mt-2 text-sm text-gray-600">
+                            <span class="font-semibold text-blue-600">Click to upload</span> or drag and drop
+                        </p>
+                        <p class="text-xs text-gray-500">PDF, PNG, JPG (MAX. 10MB)</p>
+                    </div>
+                    <div id="file-info" class="hidden mt-4 text-center">
+                        <p class="text-sm font-medium text-gray-700"></p>
+                        <div id="analysis-progress" class="w-full bg-gray-200 rounded-full h-2.5 mt-2 hidden">
+                            <div class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Extracted Text Section -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">2. Extracted Text</h2>
+                    <textarea id="extracted-text" class="w-full h-48 p-3 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" readonly placeholder="Document text will appear here after upload..."></textarea>
+                </div>
+
+                <!-- 3. Flagged Risks Section -->
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h2 class="text-xl font-semibold mb-4">3. Flagged Risks</h2>
+                    <div id="risk-container" class="space-y-3">
+                        <p class="text-gray-500">No risks detected yet. Upload a document to begin analysis.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column for Chatbot -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-md h-full flex flex-col">
+                    <h2 class="text-xl font-semibold p-6 border-b">Analysis Assistant</h2>
+                    <div id="chatbot-messages" class="p-6 space-y-4 overflow-y-auto flex-grow">
+                        <!-- Initial Bot Message -->
+                        <div class="flex items-start gap-3">
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">A</div>
+                            <div class="p-3 chat-bubble-bot">
+                                <p class="text-sm">Hello! I'm your analysis assistant. Please upload a document, and I'll explain the flagged risks here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileUpload = document.getElementById('file-upload');
+        const fileInfo = document.getElementById('file-info');
+        const fileNameDisplay = fileInfo.querySelector('p');
+        const uploadText = document.getElementById('upload-text');
+        const extractedTextArea = document.getElementById('extracted-text');
+        const riskContainer = document.getElementById('risk-container');
+        const chatbotMessages = document.getElementById('chatbot-messages');
+        const analysisProgress = document.getElementById('analysis-progress');
+        const progressBar = analysisProgress.querySelector('div');
+
+        // --- Event Listeners for File Upload ---
+        uploadArea.addEventListener('click', () => fileUpload.click());
+
+        fileUpload.addEventListener('change', (event) => {
+            if (event.target.files.length > 0) {
+                handleFile(event.target.files[0]);
+            }
+        });
+
+        // --- Drag and Drop Functionality ---
+        uploadArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            uploadArea.classList.add('bg-blue-50', 'border-blue-500');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('bg-blue-50', 'border-blue-500');
+        });
+
+        uploadArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            uploadArea.classList.remove('bg-blue-50', 'border-blue-500');
+            if (event.dataTransfer.files.length > 0) {
+                fileUpload.files = event.dataTransfer.files;
+                handleFile(event.dataTransfer.files[0]);
+            }
+        });
+
+        // --- Core Logic ---
+        function handleFile(file) {
+            // 1. Update UI to show file name and progress
+            fileNameDisplay.textContent = `File: ${file.name}`;
+            fileInfo.classList.remove('hidden');
+            uploadText.classList.add('hidden');
+            analysisProgress.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            
+            // Reset previous results
+            extractedTextArea.value = 'Analyzing document...';
+            riskContainer.innerHTML = '<p class="text-gray-500">Analyzing for risks...</p>';
+            resetChatbot();
+
+            // 2. Simulate analysis progress
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 25;
+                progressBar.style.width = `${progress}%`;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    // 3. Start the mock analysis after progress bar completes
+                    setTimeout(runMockAnalysis, 300);
+                }
+            }, 200);
+        }
+
+        function runMockAnalysis() {
+            // Mock extracted text from a financial document
+            const mockText = `
+Statement for John Doe
+Account: 123-456-789
+Period: 01/01/2024 - 31/01/2024
+
+Address: 123 Fake Street, Anytown
+
+Transactions:
+- 05/01/2024: Salary Deposit - $5,000.00
+- 10/01/2024: Large Cash Deposit - $15,000.00
+- 15/01/2024: International Transfer to Unregulated Zone - $8,000.00
+- 20/01/2024: Loan Payment - $500.00
+
+This document does not contain a PAN number. The stated income from salary does not align with the large cash deposit. Income mismatch detected.
+            `;
+            extractedTextArea.value = mockText.trim();
+
+            // Mock risk detection
+            const risks = [
+                { id: 'income_mismatch', text: 'Income Mismatch', detail: 'A large cash deposit does not align with the typical salary income.' },
+                { id: 'missing_pan', text: 'Missing PAN', detail: 'The Permanent Account Number (PAN) is missing from the document.' },
+                { id: 'high_risk_transfer', text: 'High-Risk Transaction', detail: 'An international transfer was made to a known high-risk or unregulated jurisdiction.' }
+            ];
+
+            displayRisks(risks);
+            displayChatbotExplanation(risks);
+        }
+
+        function displayRisks(risks) {
+            riskContainer.innerHTML = ''; // Clear previous risks
+            if (risks.length === 0) {
+                riskContainer.innerHTML = '<p class="text-green-600 font-medium">✅ No significant risks detected.</p>';
+                return;
+            }
+
+            risks.forEach(risk => {
+                const riskElement = document.createElement('div');
+                riskElement.className = 'flex items-center bg-red-50 p-3 rounded-lg border border-red-200';
+                riskElement.innerHTML = `
+                    <svg class="h-6 w-6 text-red-500 mr-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <p class="font-semibold text-red-800">${risk.text}</p>
+                        <p class="text-sm text-red-700">${risk.detail}</p>
+                    </div>
+                `;
+                riskContainer.appendChild(riskElement);
+            });
+        }
+        
+        function resetChatbot() {
+            chatbotMessages.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">A</div>
+                    <div class="p-3 chat-bubble-bot">
+                        <p class="text-sm">Analyzing... Please wait.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayChatbotExplanation(risks) {
+            chatbotMessages.innerHTML = ''; // Clear previous messages
+             const introMessage = `
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">A</div>
+                    <div class="p-3 chat-bubble-bot">
+                        <p class="text-sm">Analysis complete! I found ${risks.length} potential risk(s). Here's a breakdown:</p>
+                    </div>
+                </div>
+            `;
+            chatbotMessages.insertAdjacentHTML('beforeend', introMessage);
+
+            if (risks.length === 0) {
+                 const noRiskMessage = `
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">A</div>
+                        <div class="p-3 chat-bubble-bot">
+                            <p class="text-sm">The document appears to be clear of common financial red flags. This is a positive sign, but always ensure you perform a full manual review.</p>
+                        </div>
+                    </div>
+                `;
+                chatbotMessages.insertAdjacentHTML('beforeend', noRiskMessage);
+                return;
+            }
+
+            risks.forEach((risk, index) => {
+                setTimeout(() => {
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'flex items-start gap-3';
+                    botMessage.innerHTML = `
+                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">A</div>
+                        <div class="p-3 chat-bubble-bot">
+                            <p class="font-semibold text-sm mb-1">${risk.text}</p>
+                            <p class="text-sm">${risk.detail} This is important because it could indicate attempts to obscure the source of funds, non-compliance with tax regulations, or involvement in illicit activities.</p>
+                        </div>
+                    `;
+                    chatbotMessages.appendChild(botMessage);
+                    chatbotMessages.scrollTop = chatbotMessages.scrollHeight; // Auto-scroll
+                }, (index + 1) * 800); // Stagger the messages
+            });
+        }
+
+    </script>
+</body>
+</html>
