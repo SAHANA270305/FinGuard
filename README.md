@@ -62,12 +62,6 @@ Pull requests are welcome. If you'd like to suggest features or report bugs, ope
 
 ---
 
-## 📜 License
-
-This project is under the [MIT License](LICENSE).
-
----
-
 ## 🙋‍♀️ Built By
 
 **Shamratha G**  
